@@ -1,12 +1,30 @@
 // server.js - Complete Updated Smart Parking Backend
 
+// Load environment variables from .env file (local dev)
+// On Render, these are set via the dashboard environment variables panel
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
+const crypto = require('crypto');          // Built-in Node.js module for HMAC verification
+const Razorpay = require('razorpay');      // Payment gateway SDK
 const { execFile } = require('child_process');
 const path = require('path');
 const db = require('./db');
 
 const app = express();
+
+/* ======================================================
+   RAZORPAY INSTANCE
+   Keys come from .env locally, from Render env vars in production.
+   NEVER hardcode these keys!
+====================================================== */
+const razorpay = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET
+});
+
+console.log('[Razorpay] Initialized with Key ID:', process.env.RAZORPAY_KEY_ID ? '✓ Found' : '✗ MISSING - check .env');
 
 /* ======================================================
    MIDDLEWARE
@@ -32,9 +50,16 @@ app.get('/api/slots', async (req, res) => {
     try {
 
         const [rows] = await db.query(`
-            SELECT *
-            FROM slots
-            ORDER BY distance ASC
+            SELECT 
+                s.slot_id, 
+                s.status, 
+                s.distance, 
+                s.vehicle_type,
+                v.vehicle_no,
+                v.entry_time
+            FROM slots s
+            LEFT JOIN vehicles v ON s.slot_id = v.assigned_slot AND v.exit_time IS NULL
+            ORDER BY s.distance ASC
         `);
 
         res.json({
@@ -266,6 +291,164 @@ app.post('/api/exit', async (req, res) => {
             message: 'Failed to process exit',
             error: error.message
         });
+    }
+});
+
+/* ======================================================
+   CREATE RAZORPAY ORDER
+   Called by frontend when a user clicks "Process Exit & Pay"
+   1. Looks up vehicle and calculates bill
+   2. Creates a Razorpay order (server-side, secure)
+   3. Returns order_id + amount to frontend
+   NOTE: Slot is NOT freed here. Slot is freed only after payment verification.
+====================================================== */
+
+app.post('/api/create-order', async (req, res) => {
+    const { vehicleNo } = req.body;
+
+    if (!vehicleNo) {
+        return res.status(400).json({ success: false, message: 'Vehicle number is required' });
+    }
+
+    try {
+        console.log('[create-order] Finding vehicle:', vehicleNo);
+
+        // Find the active parked vehicle
+        const [vehicles] = await db.query(
+            'SELECT * FROM vehicles WHERE vehicle_no = ? AND exit_time IS NULL',
+            [vehicleNo]
+        );
+
+        if (vehicles.length === 0) {
+            return res.status(404).json({ success: false, message: 'Vehicle not found or already exited' });
+        }
+
+        const vehicle = vehicles[0];
+
+        // Calculate parking duration
+        const entryTime = new Date(vehicle.entry_time);
+        const now = new Date();
+        const diffMs = now - entryTime;
+        const hoursParked = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60)));
+
+        // Billing logic: ₹20 for first hour, ₹10 per additional hour
+        let billAmount = 20;
+        if (hoursParked > 1) billAmount += (hoursParked - 1) * 10;
+
+        console.log(`[create-order] Vehicle: ${vehicleNo}, Hours: ${hoursParked}, Bill: ₹${billAmount}`);
+
+        // Create Razorpay order
+        // Amount must be in PAISE (1 INR = 100 paise)
+        const order = await razorpay.orders.create({
+            amount: billAmount * 100,
+            currency: 'INR',
+            receipt: `parking_${vehicleNo}_${Date.now()}`,
+            notes: {
+                vehicleNo: vehicleNo,
+                assignedSlot: vehicle.assigned_slot,
+                hoursParked: hoursParked
+            }
+        });
+
+        console.log('[create-order] Razorpay order created:', order.id);
+
+        res.json({
+            success: true,
+            orderId: order.id,
+            amount: billAmount,
+            hoursParked: hoursParked,
+            assignedSlot: vehicle.assigned_slot,
+            vehicleNo: vehicleNo,
+            // Send Key ID to frontend (safe - this is not the secret)
+            keyId: process.env.RAZORPAY_KEY_ID
+        });
+
+    } catch (error) {
+        console.error('[create-order] Error:', error);
+        res.status(500).json({ success: false, message: 'Failed to create payment order', error: error.message });
+    }
+});
+
+/* ======================================================
+   VERIFY PAYMENT & FREE SLOT
+   Called after Razorpay payment succeeds in the frontend.
+   1. Verifies payment signature cryptographically (HMAC SHA256)
+   2. Only if signature is valid: updates DB and frees the slot
+   This prevents anyone from calling this route without real payment.
+====================================================== */
+
+app.post('/api/verify-payment', async (req, res) => {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, vehicleNo } = req.body;
+
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !vehicleNo) {
+        return res.status(400).json({ success: false, message: 'Missing payment verification fields' });
+    }
+
+    try {
+        console.log('[verify-payment] Verifying payment for:', vehicleNo);
+        console.log('[verify-payment] Order ID:', razorpay_order_id);
+        console.log('[verify-payment] Payment ID:', razorpay_payment_id);
+
+        // --- CRYPTOGRAPHIC VERIFICATION ---
+        // Razorpay signs the payment with: HMAC_SHA256(order_id + '|' + payment_id, key_secret)
+        // We replicate this and compare. If they match, payment is genuine.
+        const body = razorpay_order_id + '|' + razorpay_payment_id;
+        const expectedSignature = crypto
+            .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+            .update(body)
+            .digest('hex');
+
+        if (expectedSignature !== razorpay_signature) {
+            console.warn('[verify-payment] Signature mismatch! Possible fraud attempt.');
+            return res.status(400).json({ success: false, message: 'Payment verification failed - invalid signature' });
+        }
+
+        console.log('[verify-payment] Signature verified successfully!');
+
+        // --- FETCH VEHICLE ---
+        const [vehicles] = await db.query(
+            'SELECT * FROM vehicles WHERE vehicle_no = ? AND exit_time IS NULL',
+            [vehicleNo]
+        );
+
+        if (vehicles.length === 0) {
+            return res.status(404).json({ success: false, message: 'Vehicle not found' });
+        }
+
+        const vehicle = vehicles[0];
+        const exitTime = new Date();
+        const diffMs = exitTime - new Date(vehicle.entry_time);
+        const hoursParked = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60)));
+        let billAmount = 20;
+        if (hoursParked > 1) billAmount += (hoursParked - 1) * 10;
+
+        // --- UPDATE DATABASE ---
+        // 1. Log exit time and bill on vehicle record
+        await db.query(
+            'UPDATE vehicles SET exit_time = ?, bill_amount = ? WHERE vehicle_no = ? AND exit_time IS NULL',
+            [exitTime, billAmount, vehicleNo]
+        );
+
+        // 2. Free the parking slot
+        await db.query(
+            "UPDATE slots SET status = 'FREE', vehicle_type = NULL WHERE slot_id = ?",
+            [vehicle.assigned_slot]
+        );
+
+        console.log(`[verify-payment] Slot ${vehicle.assigned_slot} freed successfully.`);
+
+        res.json({
+            success: true,
+            message: 'Payment verified and slot freed',
+            freedSlot: vehicle.assigned_slot,
+            hoursParked: hoursParked,
+            billAmount: billAmount,
+            paymentId: razorpay_payment_id
+        });
+
+    } catch (error) {
+        console.error('[verify-payment] Error:', error);
+        res.status(500).json({ success: false, message: 'Payment verification failed', error: error.message });
     }
 });
 

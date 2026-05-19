@@ -147,6 +147,8 @@ header {
     padding: 2rem;
     position: relative;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .panel-header {
@@ -173,6 +175,8 @@ header {
     display: flex;
     flex-direction: column;
     gap: 1.2rem;
+    flex: 1;
+    justify-content: space-between;
 }
 
 .input-group {
@@ -283,103 +287,188 @@ select option {
     border-radius: 2px;
 }
 
-.slots-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 3rem;
-}
-
-/* Glassmorphism Slot Card */
-.slot-card {
-    background: var(--card-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--glass-border);
-    border-radius: 16px;
-    padding: 1.8rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    overflow: hidden;
-}
-
-.slot-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(800px circle at var(--mouse-x, 0) var(--mouse-y, 0), rgba(255,255,255,0.06), transparent 40%);
-    opacity: 0;
-    transition: opacity 0.3s;
-    pointer-events: none;
-}
-
-.slot-card:hover::before {
-    opacity: 1;
-}
-
-.slot-card:hover {
-    transform: translateY(-5px);
-    border-color: rgba(255, 255, 255, 0.2);
-    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
-}
-
-.slot-header {
+/* Live Parking Map Section */
+.map-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
 }
 
-.slot-id {
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: #fff;
+.map-legend {
+    display: flex;
+    gap: 1.5rem;
+    padding: 0.8rem 1.5rem;
+    border-radius: 30px;
+    font-size: 0.9rem;
+    font-weight: 600;
     letter-spacing: 1px;
 }
 
-/* Dynamic Status Badges */
-.status-badge {
-    padding: 6px 14px;
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.parking-map {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1rem;
+    margin-bottom: 3rem;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.2);
     border-radius: 20px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
+    border: 1px dashed rgba(255,255,255,0.1);
 }
 
-.status-free {
-    background: rgba(34, 197, 94, 0.1);
-    color: var(--success);
-    border: 1px solid rgba(34, 197, 94, 0.2);
-    box-shadow: 0 0 10px rgba(34, 197, 94, 0.1);
+/* Realistic Map Slot */
+.map-slot {
+    background: var(--card-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 2px solid var(--glass-border);
+    border-radius: 12px;
+    aspect-ratio: 3 / 4;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 0.8rem;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
 }
 
-.status-occupied {
-    background: rgba(239, 68, 68, 0.1);
-    color: var(--danger);
-    border: 1px solid rgba(239, 68, 68, 0.2);
-    box-shadow: 0 0 10px rgba(239, 68, 68, 0.1);
+.map-slot:hover {
+    transform: scale(1.03);
 }
 
-/* Card Details */
-.slot-detail {
+.slot-id-bg {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 5rem;
+    font-weight: 800;
+    color: rgba(255,255,255,0.08);
+    z-index: 0;
+    pointer-events: none;
+}
+
+.slot-top {
     display: flex;
     justify-content: space-between;
-    font-size: 1rem;
-    color: var(--text-muted);
+    align-items: flex-start;
+    z-index: 1;
 }
 
-.detail-value {
-    color: var(--text-main);
-    font-weight: 500;
+.slot-id {
+    font-size: 1.1rem;
+    font-weight: 700;
+    background: rgba(0,0,0,0.5);
+    padding: 4px 8px;
+    border-radius: 6px;
+    color: #fff;
 }
+
+.slot-distance {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    background: rgba(0,0,0,0.3);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.slot-center {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1;
+}
+
+.vehicle-emoji {
+    font-size: 3.5rem;
+    filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5));
+    animation: parkIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes parkIn {
+    0% { transform: scale(0.5) translateY(50px); opacity: 0; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.slot-bottom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    z-index: 1;
+}
+
+.slot-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.slot-timer {
+    font-size: 0.8rem;
+    font-family: monospace;
+    color: #e2e8f0;
+    background: rgba(0,0,0,0.5);
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.vehicle-no-label {
+    font-size: 0.75rem;
+    color: #f8fafc;
+    font-weight: 600;
+    background: rgba(255,255,255,0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-top: 2px;
+}
+
+/* Free Slot State */
+.slot-free {
+    border-color: rgba(34, 197, 94, 0.4);
+    box-shadow: inset 0 0 20px rgba(34, 197, 94, 0.1);
+    animation: breathe-green 3s infinite alternate ease-in-out;
+}
+
+.slot-free .slot-label {
+    color: var(--success);
+}
+
+/* Occupied Slot State */
+.slot-occupied {
+    border-color: rgba(239, 68, 68, 0.5);
+    box-shadow: inset 0 0 30px rgba(239, 68, 68, 0.15);
+    animation: pulse-red 2s infinite alternate ease-in-out;
+}
+
+.slot-occupied .slot-label {
+    color: var(--danger);
+}
+
+/* Animations */
+@keyframes breathe-green {
+    0% { box-shadow: inset 0 0 10px rgba(34, 197, 94, 0.05), 0 0 5px rgba(34, 197, 94, 0.1); border-color: rgba(34, 197, 94, 0.2); }
+    100% { box-shadow: inset 0 0 25px rgba(34, 197, 94, 0.2), 0 0 15px rgba(34, 197, 94, 0.3); border-color: rgba(34, 197, 94, 0.6); }
+}
+
+@keyframes pulse-red {
+    0% { box-shadow: inset 0 0 15px rgba(239, 68, 68, 0.1), 0 0 5px rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.3); }
+    100% { box-shadow: inset 0 0 40px rgba(239, 68, 68, 0.3), 0 0 20px rgba(239, 68, 68, 0.4); border-color: rgba(239, 68, 68, 0.8); }
+}
+
+.breath-anim { animation: breathe-green 3s infinite alternate ease-in-out; }
+.pulse-anim { animation: pulse-red 2s infinite alternate ease-in-out; }
 
 /* Activity Table */
 .table-container {
@@ -575,4 +664,246 @@ html, body {
     .section-title {
         font-size: 1.3rem;
     }
+}
+
+/* ============================================================
+   PAYMENT MODAL STYLES
+   Glassmorphism overlay + card with bill summary
+============================================================ */
+
+.payment-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    animation: fadeInOverlay 0.25s ease;
+}
+
+@keyframes fadeInOverlay {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.payment-modal-overlay.hidden {
+    display: none;
+}
+
+.payment-modal-card {
+    width: 100%;
+    max-width: 420px;
+    padding: 2.5rem 2rem;
+    border-radius: 24px;
+    animation: slideUpCard 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+@keyframes slideUpCard {
+    from { transform: translateY(60px) scale(0.95); opacity: 0; }
+    to   { transform: translateY(0)     scale(1);    opacity: 1; }
+}
+
+.payment-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.payment-icon {
+    font-size: 2rem;
+}
+
+.payment-modal-header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #fff, #a5b4fc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Bill Summary Rows */
+.payment-bill-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.bill-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.85rem 1.1rem;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.bill-row:last-child {
+    border-bottom: none;
+}
+
+.bill-label {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.bill-value {
+    font-size: 0.95rem;
+    color: var(--text-main);
+    font-weight: 600;
+}
+
+.bill-total-row {
+    background: rgba(99, 102, 241, 0.08);
+}
+
+.bill-total-amount {
+    font-size: 1.4rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #fde047, #eab308);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Action Buttons */
+.payment-modal-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.pay-now-btn {
+    width: 100%;
+    font-size: 1.1rem;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    box-shadow: 0 4px 20px rgba(34, 197, 94, 0.4);
+}
+
+.pay-now-btn:hover {
+    background: linear-gradient(135deg, #16a34a, #15803d);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 25px rgba(34, 197, 94, 0.5);
+}
+
+.cancel-pay-btn {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    color: var(--text-muted);
+    padding: 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-family: 'Outfit', sans-serif;
+    transition: all 0.3s ease;
+}
+
+.cancel-pay-btn:hover {
+    border-color: rgba(239, 68, 68, 0.5);
+    color: var(--danger);
+}
+
+/* Pay button loading spinner */
+.pay-spinner {
+    width: 18px;
+    height: 18px;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: inline-block;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Payment Status Message */
+.payment-status-msg {
+    text-align: center;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    animation: fadeInOverlay 0.3s ease;
+}
+
+.payment-status-msg.success-msg {
+    background: rgba(34, 197, 94, 0.15);
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    color: var(--success);
+}
+
+.payment-status-msg.error-msg {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: var(--danger);
+}
+
+/* Payment Success Celebration Animation */
+@keyframes successPop {
+    0%   { transform: scale(0.8); opacity: 0; }
+    60%  { transform: scale(1.1); }
+    100% { transform: scale(1);   opacity: 1; }
+}
+
+.payment-success-anim {
+    animation: successPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* Mobile tweaks for payment modal */
+@media (max-width: 480px) {
+    .payment-modal-card {
+        padding: 1.75rem 1.25rem;
+    }
+    .bill-total-amount {
+        font-size: 1.2rem;
+    }
+}
+
+/* ============================================================
+   PAY & EXIT BUTTON (inside activity table rows)
+============================================================ */
+.pay-row-btn {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: #fff;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    font-family: 'Outfit', sans-serif;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.25s ease;
+    box-shadow: 0 2px 10px rgba(34, 197, 94, 0.35);
+    letter-spacing: 0.3px;
+}
+
+.pay-row-btn:hover {
+    background: linear-gradient(135deg, #16a34a, #15803d);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(34, 197, 94, 0.5);
+}
+
+.pay-row-btn:disabled {
+    background: rgba(255,255,255,0.08);
+    color: var(--text-muted);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }

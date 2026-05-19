@@ -10,14 +10,61 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Custom stylesheet -->
     <link rel="stylesheet" href="style.css">
+    <!-- Razorpay Checkout Script (required for payment popup) -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body>
+    <!-- ==========================================
+         PAYMENT MODAL OVERLAY
+         Shown after bill calculation, before slot freeing.
+         Hidden by default, toggled by JS.
+    =========================================== -->
+    <div id="paymentModal" class="payment-modal-overlay hidden">
+        <div class="payment-modal-card glass-panel">
+            <!-- Header -->
+            <div class="payment-modal-header">
+                <span class="payment-icon">💳</span>
+                <h2>Parking Bill</h2>
+            </div>
+
+            <!-- Bill Summary -->
+            <div class="payment-bill-summary">
+                <div class="bill-row">
+                    <span class="bill-label">🚗 Vehicle</span>
+                    <span class="bill-value" id="payVehicleNo">--</span>
+                </div>
+                <div class="bill-row">
+                    <span class="bill-label">🅿️ Slot</span>
+                    <span class="bill-value" id="paySlot">--</span>
+                </div>
+                <div class="bill-row">
+                    <span class="bill-label">⏱ Duration</span>
+                    <span class="bill-value" id="payDuration">--</span>
+                </div>
+                <div class="bill-row bill-total-row">
+                    <span class="bill-label">💰 Total</span>
+                    <span class="bill-value bill-total-amount" id="payAmount">₹--</span>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="payment-modal-actions">
+                <button id="payNowBtn" class="primary-btn pay-now-btn">
+                    <span id="payBtnText">Pay Now</span>
+                    <span id="payBtnLoader" class="hidden pay-spinner"></span>
+                </button>
+                <button id="cancelPayBtn" class="cancel-pay-btn">Cancel</button>
+            </div>
+
+            <!-- Payment Status Message (success/failure) -->
+            <div id="paymentStatusMsg" class="hidden payment-status-msg"></div>
+        </div>
+    </div>
     <div class="container">
         <!-- Header Section -->
         <header>
             <div class="header-content">
                 <h1>Smart Parking Management System</h1>
-                <p class="subtitle">Powered by C++ Min Heap Allocation</p>
             </div>
             <button id="loadSlotsBtn" class="glow-on-hover primary-btn">Refresh Status</button>
         </header>
@@ -108,9 +155,15 @@
 
             <!-- Slots Grid Section -->
             <section class="slots-section">
-                <h2 class="section-title">Live Parking Status</h2>
-                <div id="slotsGrid" class="slots-grid">
-                    <!-- Slot cards injected via JS -->
+                <div class="map-header">
+                    <h2 class="section-title">Live Parking Map</h2>
+                    <div class="map-legend glass-panel">
+                        <span class="legend-item"><span class="neon-dot green breath-anim"></span> FREE</span>
+                        <span class="legend-item"><span class="neon-dot red pulse-anim"></span> OCCUPIED</span>
+                    </div>
+                </div>
+                <div id="slotsGrid" class="parking-map">
+                    <!-- Parking slots injected via JS -->
                 </div>
             </section>
 
@@ -121,11 +174,13 @@
                     <table id="activityTable">
                         <thead>
                             <tr>
-                                <th>Time</th>
-                                <th>Action</th>
                                 <th>Vehicle No</th>
-                                <th>Assigned Slot</th>
+                                <th>Slot</th>
+                                <th>Entry Time</th>
+                                <th>Exit Time</th>
                                 <th>Amount</th>
+                                <th>Status</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody id="activityTableBody">

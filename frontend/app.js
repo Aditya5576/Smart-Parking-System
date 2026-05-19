@@ -1,9 +1,16 @@
-// API Configuration
-const API_URL = 'https://smart-parking-system-8lqz.onrender.com/api/slots';
+// Dynamic API Configuration for Local + Production Compatibility
+const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://localhost:5000/api/slots'
+    : 'https://smart-parking-system-8lqz.onrender.com/api/slots';
 
-// State Management (Session-based as per constraints)
+// State Management
 let totalEarnings = 0;
-let recentActivity = [];
+let recentActivity = JSON.parse(localStorage.getItem('smartParkingActivityV2')) || [];
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+// Filter out activities older than 24 hours
+recentActivity = recentActivity.filter(activity => (Date.now() - activity.timestamp) < ONE_DAY_MS);
+localStorage.setItem('smartParkingActivityV2', JSON.stringify(recentActivity));
 
 // DOM Elements
 const loadSlotsBtn = document.getElementById('loadSlotsBtn');
@@ -33,8 +40,15 @@ const exitFormMessage = document.getElementById('exitFormMessage');
 // ==========================================
 // INITIALIZATION
 // ==========================================
-document.addEventListener('DOMContentLoaded', fetchSlots);
-loadSlotsBtn.addEventListener('click', fetchSlots);
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('[Init] DOMContentLoaded fired, fetching slots...');
+    renderActivityTable();
+    fetchSlots();
+});
+
+if (loadSlotsBtn) {
+    loadSlotsBtn.addEventListener('click', fetchSlots);
+}
 
 // ==========================================
 // VEHICLE ENTRY LOGIC
@@ -89,7 +103,8 @@ function showFormMessage(message, className) {
 }
 
 // ==========================================
-// VEHICLE EXIT LOGIC
+// VEHICLE EXIT LOGIC  (Phase 3: Razorpay Payment)
+// Flow: Exit Form → Create Order → Show Modal → Razorpay Popup → Verify → Free Slot
 // ==========================================
 exitForm.addEventListener('submit', handleVehicleExit);
 
@@ -102,37 +117,219 @@ async function handleVehicleExit(e) {
         return;
     }
 
+    showExitMessage('Calculating bill... ⏳', 'info-msg');
+
     try {
-        const response = await fetch(API_URL.replace('/slots', '/exit'), {
+        // Step 1: Call backend to create a Razorpay order.
+        // The slot is NOT freed here — only after successful payment.
+        console.log('[exit] Creating Razorpay order for:', vehicleNo);
+
+        const response = await fetch(API_URL.replace('/slots', '/create-order'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ vehicleNo })
         });
-        const result = await response.json();
+        const orderData = await response.json();
+
+        if (!orderData.success) {
+            showExitMessage(orderData.message || 'Could not create payment order.', 'error-msg');
+            return;
+        }
+
+        console.log('[exit] Order created:', orderData.orderId, 'Amount: ₹' + orderData.amount);
+
+        // Step 2: Show our custom payment modal with bill details
+        showPaymentModal(orderData);
+
+    } catch (error) {
+        console.error('[exit] Error:', error);
+        showExitMessage('Server error. Please try again.', 'error-msg');
+    }
+}
+
+// ==========================================
+// PAYMENT MODAL LOGIC
+// ==========================================
+
+// Modal DOM references
+const paymentModal    = document.getElementById('paymentModal');
+const payVehicleNo    = document.getElementById('payVehicleNo');
+const paySlot         = document.getElementById('paySlot');
+const payDuration     = document.getElementById('payDuration');
+const payAmount       = document.getElementById('payAmount');
+const payNowBtn       = document.getElementById('payNowBtn');
+const payBtnText      = document.getElementById('payBtnText');
+const payBtnLoader    = document.getElementById('payBtnLoader');
+const cancelPayBtn    = document.getElementById('cancelPayBtn');
+const paymentStatusMsg = document.getElementById('paymentStatusMsg');
+
+// Store current order data for reuse in retry flow
+let currentOrderData = null;
+
+function showPaymentModal(orderData) {
+    // Cache order for retry
+    currentOrderData = orderData;
+
+    // Populate bill details
+    payVehicleNo.textContent = orderData.vehicleNo;
+    paySlot.textContent      = orderData.assignedSlot;
+    payDuration.textContent  = `${orderData.hoursParked} hr${orderData.hoursParked > 1 ? 's' : ''}`;
+    payAmount.textContent    = `₹${orderData.amount}`;
+
+    // Reset modal state
+    paymentStatusMsg.className = 'hidden payment-status-msg';
+    paymentStatusMsg.textContent = '';
+    setPayBtnLoading(false);
+
+    // Show modal
+    paymentModal.classList.remove('hidden');
+    exitFormMessage.classList.add('hidden');
+}
+
+function hidePaymentModal() {
+    paymentModal.classList.add('hidden');
+    currentOrderData = null;
+}
+
+// Cancel button — close modal without freeing the slot
+cancelPayBtn.addEventListener('click', () => {
+    hidePaymentModal();
+    showExitMessage('Payment cancelled. Slot is still occupied.', 'error-msg');
+});
+
+// Pay Now button — open Razorpay checkout popup
+payNowBtn.addEventListener('click', () => {
+    if (!currentOrderData) return;
+    initiateRazorpayCheckout(currentOrderData);
+});
+
+function setPayBtnLoading(isLoading) {
+    if (isLoading) {
+        payBtnText.classList.add('hidden');
+        payBtnLoader.classList.remove('hidden');
+        payNowBtn.disabled = true;
+    } else {
+        payBtnText.classList.remove('hidden');
+        payBtnLoader.classList.add('hidden');
+        payNowBtn.disabled = false;
+    }
+}
+
+function showPaymentStatus(message, type) {
+    paymentStatusMsg.textContent = message;
+    paymentStatusMsg.className = `payment-status-msg ${type}`;
+}
+
+function initiateRazorpayCheckout(orderData) {
+    console.log('[razorpay] Opening checkout for order:', orderData.orderId);
+    setPayBtnLoading(true);
+
+    const options = {
+        // Key ID from backend (safe to expose, it's public)
+        key: orderData.keyId,
+
+        // Amount in paise (backend already calculated correctly)
+        amount: orderData.amount * 100,
+        currency: 'INR',
+
+        // Order ID from Razorpay (created on backend)
+        order_id: orderData.orderId,
+
+        name: 'Smart Parking System',
+        description: `Parking at Slot ${orderData.assignedSlot}`,
+        image: 'https://cdn-icons-png.flaticon.com/512/3523/3523063.png',
+
+        // ✅ PAYMENT SUCCESS HANDLER
+        handler: async function (response) {
+            console.log('[razorpay] Payment successful:', response);
+            setPayBtnLoading(false);
+            showPaymentStatus('✅ Payment received! Updating records...', 'success-msg');
+
+            // Call backend to verify signature and free the slot
+            await handlePaymentSuccess(response, orderData);
+        },
+
+        prefill: {
+            name: 'Parking Customer',
+            email: 'customer@smartparking.com'
+        },
+
+        theme: {
+            color: '#6366f1'
+        },
+
+        // ❌ PAYMENT FAILURE / DISMISSAL HANDLER
+        modal: {
+            ondismiss: function () {
+                console.log('[razorpay] Payment modal dismissed by user.');
+                setPayBtnLoading(false);
+                showPaymentStatus('Payment cancelled. You can retry anytime.', 'error-msg');
+            }
+        }
+    };
+
+    const rzp = new Razorpay(options);
+
+    // Handle payment errors (card declined, bank errors etc.)
+    rzp.on('payment.failed', function (response) {
+        console.error('[razorpay] Payment failed:', response.error);
+        setPayBtnLoading(false);
+        showPaymentStatus(`❌ Payment failed: ${response.error.description}. Please retry.`, 'error-msg');
+    });
+
+    rzp.open();
+}
+
+async function handlePaymentSuccess(razorpayResponse, orderData) {
+    try {
+        console.log('[verify] Sending payment verification to backend...');
+
+        const verifyResponse = await fetch(API_URL.replace('/slots', '/verify-payment'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                razorpay_order_id:   razorpayResponse.razorpay_order_id,
+                razorpay_payment_id: razorpayResponse.razorpay_payment_id,
+                razorpay_signature:  razorpayResponse.razorpay_signature,
+                vehicleNo:           orderData.vehicleNo
+            })
+        });
+        const result = await verifyResponse.json();
 
         if (result.success) {
-            // Update earnings state
+            console.log('[verify] Slot freed successfully:', result.freedSlot);
+
+            // Update earnings counter
             totalEarnings += result.billAmount;
             statTotalEarnings.textContent = `₹${totalEarnings}`;
 
-            showExitMessage(`Bill Generated - ₹${result.billAmount} (${result.hoursParked} hrs)`, 'success-msg');
-            
-            // Add to activity
+            // Success animation on modal, then close
+            showPaymentStatus(`🎉 Payment Successful! ₹${result.billAmount} received. Slot ${result.freedSlot} is now free.`, 'success-msg');
+
+            // Log to activity table with PAYMENT SUCCESS
             addActivity({
                 action: 'EXIT',
-                vehicleNo: vehicleNo,
+                vehicleNo: orderData.vehicleNo,
                 slot: result.freedSlot,
-                amount: `₹${result.billAmount}`
+                amount: `₹${result.billAmount} ✅`
             });
 
             exitForm.reset();
-            fetchSlots();
+
+            // Close modal after 2.5s so user can see the success message
+            setTimeout(() => {
+                hidePaymentModal();
+                fetchSlots();
+            }, 2500);
+
         } else {
-            showExitMessage(result.message || 'Failed to exit vehicle', 'error-msg');
+            console.error('[verify] Verification failed:', result.message);
+            showPaymentStatus(`⚠️ Verification failed: ${result.message}`, 'error-msg');
         }
+
     } catch (error) {
-        console.error('Error:', error);
-        showExitMessage('Server error while exiting vehicle.', 'error-msg');
+        console.error('[verify] Network error:', error);
+        showPaymentStatus('⚠️ Network error during verification. Contact support.', 'error-msg');
     }
 }
 
@@ -149,17 +346,43 @@ function showExitMessage(message, className) {
 function addActivity(data) {
     const timeString = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
     
-    // Add to beginning of array
-    recentActivity.unshift({
-        time: timeString,
-        ...data
-    });
+    if (data.action === 'ENTRY') {
+        recentActivity.unshift({
+            vehicleNo: data.vehicleNo,
+            slot: data.slot,
+            entryTime: timeString,
+            exitTime: '-',
+            amount: '-',
+            status: 'PARKED',
+            timestamp: Date.now()
+        });
+    } else if (data.action === 'EXIT') {
+        const existing = recentActivity.find(a => a.vehicleNo === data.vehicleNo && a.status === 'PARKED');
+        if (existing) {
+            existing.exitTime = timeString;
+            existing.amount = data.amount;
+            existing.status = 'COMPLETED';
+            existing.timestamp = Date.now();
+        } else {
+            // Fallback if entry was missed
+            recentActivity.unshift({
+                vehicleNo: data.vehicleNo,
+                slot: data.slot,
+                entryTime: 'Unknown',
+                exitTime: timeString,
+                amount: data.amount,
+                status: 'COMPLETED',
+                timestamp: Date.now()
+            });
+        }
+    }
 
     // Keep only last 10 entries to avoid UI clutter
     if (recentActivity.length > 10) {
         recentActivity.pop();
     }
 
+    localStorage.setItem('smartParkingActivityV2', JSON.stringify(recentActivity));
     renderActivityTable();
 }
 
@@ -167,7 +390,7 @@ function renderActivityTable() {
     if (recentActivity.length === 0) {
         activityTableBody.innerHTML = `
             <tr class="empty-row">
-                <td colspan="5" style="text-align: center; color: #888;">No recent activity in this session</td>
+                <td colspan="7" style="text-align: center; color: #888;">No recent activity (last 24 hours)</td>
             </tr>
         `;
         return;
@@ -175,40 +398,98 @@ function renderActivityTable() {
 
     activityTableBody.innerHTML = '';
     recentActivity.forEach(activity => {
-        const badgeClass = activity.action === 'ENTRY' ? 'action-entry' : 'action-exit';
+        const badgeClass = activity.status === 'PARKED' ? 'action-entry' : 'action-exit';
+
+        // Show Pay & Exit button only for PARKED vehicles
+        const actionCell = activity.status === 'PARKED'
+            ? `<button class="pay-row-btn" data-vehicle="${activity.vehicleNo}">💳 Pay & Exit</button>`
+            : `<span style="color: #52525b; font-size: 0.8rem;">—</span>`;
+
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td>${activity.time}</td>
-            <td><span class="action-badge ${badgeClass}">${activity.action}</span></td>
             <td style="font-weight: 600;">${activity.vehicleNo}</td>
             <td>${activity.slot}</td>
+            <td>${activity.entryTime}</td>
+            <td>${activity.exitTime}</td>
             <td>${activity.amount}</td>
+            <td><span class="action-badge ${badgeClass}">${activity.status}</span></td>
+            <td>${actionCell}</td>
         `;
         activityTableBody.appendChild(row);
     });
 }
 
+// Event delegation: handle Pay & Exit button clicks anywhere in the table
+activityTableBody.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.pay-row-btn');
+    if (!btn) return;
+
+    const vehicleNo = btn.getAttribute('data-vehicle');
+    if (!vehicleNo) return;
+
+    // Disable button to prevent double-clicks
+    btn.disabled = true;
+    btn.textContent = '⏳ Loading...';
+
+    try {
+        console.log('[pay-row] Creating order for vehicle:', vehicleNo);
+        const response = await fetch(API_URL.replace('/slots', '/create-order'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ vehicleNo })
+        });
+        const orderData = await response.json();
+
+        if (!orderData.success) {
+            btn.disabled = false;
+            btn.textContent = '💳 Pay & Exit';
+            alert(orderData.message || 'Could not create payment order.');
+            return;
+        }
+
+        // Show the payment modal
+        showPaymentModal(orderData);
+
+        // Re-enable button in case user cancels
+        btn.disabled = false;
+        btn.textContent = '💳 Pay & Exit';
+
+    } catch (error) {
+        console.error('[pay-row] Error:', error);
+        btn.disabled = false;
+        btn.textContent = '💳 Pay & Exit';
+        alert('Server error. Please try again.');
+    }
+});
+
 // ==========================================
 // FETCH & RENDER PARKING SLOTS
 // ==========================================
 async function fetchSlots() {
+    console.log('[fetchSlots] Starting fetch from:', API_URL);
     loader.classList.remove('hidden');
     errorContainer.classList.add('hidden');
-    slotsGrid.innerHTML = '';
+    if (slotsGrid) slotsGrid.innerHTML = '';
 
     try {
         const response = await fetch(API_URL);
+        console.log('[fetchSlots] Response received. Status:', response.status);
         if (!response.ok) throw new Error(`Server returned status: ${response.status}`);
         
         const result = await response.json();
-        if (!result.success || !result.data) throw new Error('Invalid data format received');
+        console.log('[fetchSlots] Parsed JSON result:', result);
+        
+        if (!result.success || !result.data) {
+            throw new Error('Invalid data format received from backend');
+        }
 
         // Update Stats before rendering
         updateStats(result.data);
         
+        // Render map slots
         renderSlots(result.data);
     } catch (error) {
-        console.error('Fetch error:', error);
+        console.error('[fetchSlots] Critical Error:', error);
         showError(`Failed to load slots.\nError: ${error.message}`);
     } finally {
         loader.classList.add('hidden');
@@ -237,44 +518,66 @@ function renderSlots(slotsData) {
 
     slotsData.forEach(slot => {
         const isFree = slot.status === 'FREE';
-        const statusClass = isFree ? 'status-free' : 'status-occupied';
-        const displayVehicleType = slot.vehicle_type ? slot.vehicle_type : 'None';
+        const statusClass = isFree ? 'slot-free' : 'slot-occupied';
+        const labelText = isFree ? 'FREE' : 'OCCUPIED';
+        
+        let centerContent = '';
+        let bottomContent = '';
+
+        if (!isFree) {
+            const emoji = slot.vehicle_type === 'Car' ? '🚗' : (slot.vehicle_type === 'Bike' ? '🏍️' : '🚙');
+            centerContent = `<div class="vehicle-emoji">${emoji}</div>`;
+            
+            // Check for persistent backend data
+            if (slot.vehicle_no && slot.entry_time) {
+                const entryMs = new Date(slot.entry_time).getTime();
+                bottomContent = `
+                    <div class="slot-timer" data-entry="${entryMs}">⏱ 00:00:00</div>
+                    <div class="vehicle-no-label">${slot.vehicle_no}</div>
+                `;
+            } else {
+                bottomContent = `<div class="slot-timer">⏱ --:--:--</div>`;
+            }
+        }
 
         const cardHTML = `
-            <div class="slot-card">
-                <div class="slot-header">
+            <div class="map-slot ${statusClass}">
+                <div class="slot-id-bg">${slot.slot_id}</div>
+                
+                <div class="slot-top">
                     <span class="slot-id">${slot.slot_id}</span>
-                    <span class="status-badge ${statusClass}">${slot.status}</span>
+                    <span class="slot-distance">${slot.distance}m</span>
                 </div>
-                <div class="slot-detail">
-                    <span>Distance from Gate:</span>
-                    <span class="detail-value">${slot.distance} m</span>
+                
+                <div class="slot-center">
+                    ${centerContent}
                 </div>
-                <div class="slot-detail">
-                    <span>Vehicle Type:</span>
-                    <span class="detail-value">${displayVehicleType}</span>
+                
+                <div class="slot-bottom">
+                    <span class="slot-label">${labelText}</span>
+                    ${bottomContent}
                 </div>
             </div>
         `;
         slotsGrid.innerHTML += cardHTML;
     });
-
-    // Add subtle mouse tracking for glow effect on cards
-    setupMouseTracking();
 }
 
-function setupMouseTracking() {
-    const cards = document.querySelectorAll('.slot-card');
-    cards.forEach(card => {
-        card.addEventListener('mousemove', e => {
-            const rect = card.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            card.style.setProperty('--mouse-x', `${x}px`);
-            card.style.setProperty('--mouse-y', `${y}px`);
-        });
+// Live Timer Update Loop
+setInterval(() => {
+    const timers = document.querySelectorAll('.slot-timer[data-entry]');
+    const now = Date.now();
+    timers.forEach(timer => {
+        const entryTime = parseInt(timer.getAttribute('data-entry'));
+        const diffInSeconds = Math.floor((now - entryTime) / 1000);
+        
+        const h = String(Math.floor(diffInSeconds / 3600)).padStart(2, '0');
+        const m = String(Math.floor((diffInSeconds % 3600) / 60)).padStart(2, '0');
+        const s = String(diffInSeconds % 60).padStart(2, '0');
+        
+        timer.textContent = `⏱ ${h}:${m}:${s}`;
     });
-}
+}, 1000);
 
 function showError(message) {
     errorContainer.textContent = message;
