@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Parking Management System</title>
+    <!-- Google Fonts: Outfit for a modern look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom stylesheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header Section -->
+        <header>
+            <div class="header-content">
+                <h1>Smart Parking Management System</h1>
+                <p class="subtitle">Powered by C++ Min Heap Allocation</p>
+            </div>
+            <button id="loadSlotsBtn" class="glow-on-hover primary-btn">Refresh Status</button>
+        </header>
+
+        <!-- Main Content Area -->
+        <main>
+            <!-- Dashboard Stats Section -->
+            <section class="dashboard-stats">
+                <div class="stat-card">
+                    <div class="stat-icon total-icon"></div>
+                    <div class="stat-info">
+                        <h3>Total Slots</h3>
+                        <p id="statTotalSlots">--</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon occupied-icon"></div>
+                    <div class="stat-info">
+                        <h3>Occupied</h3>
+                        <p id="statOccupiedSlots">--</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon free-icon"></div>
+                    <div class="stat-info">
+                        <h3>Free</h3>
+                        <p id="statFreeSlots">--</p>
+                    </div>
+                </div>
+                <div class="stat-card earnings-card">
+                    <div class="stat-icon earnings-icon"></div>
+                    <div class="stat-info">
+                        <h3>Session Earnings</h3>
+                        <p id="statTotalEarnings">₹0</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Forms Container -->
+            <div class="forms-container">
+                <!-- Vehicle Entry Form -->
+                <div class="glass-panel entry-form-container">
+                    <div class="panel-header">
+                        <span class="neon-dot green"></span>
+                        <h2>Vehicle Entry</h2>
+                    </div>
+                    <form id="entryForm">
+                        <div class="input-group">
+                            <input type="text" id="vehicleNo" placeholder="Vehicle No (e.g. KA-01)" required>
+                            <span class="input-glow"></span>
+                        </div>
+                        <div class="input-group">
+                            <select id="vehicleType" required>
+                                <option value="" disabled selected>Select Vehicle Type</option>
+                                <option value="Car">Car</option>
+                                <option value="Bike">Bike</option>
+                            </select>
+                            <span class="input-glow"></span>
+                        </div>
+                        <button type="submit" class="primary-btn submit-btn">Park Vehicle</button>
+                    </form>
+                    <div id="formMessage" class="hidden"></div>
+                </div>
+
+                <!-- Vehicle Exit Form -->
+                <div class="glass-panel entry-form-container">
+                    <div class="panel-header">
+                        <span class="neon-dot red"></span>
+                        <h2>Vehicle Exit</h2>
+                    </div>
+                    <form id="exitForm">
+                        <div class="input-group full-width">
+                            <input type="text" id="exitVehicleNo" placeholder="Vehicle No to Exit" required>
+                            <span class="input-glow"></span>
+                        </div>
+                        <button type="submit" class="primary-btn submit-btn danger-btn">Process Exit & Bill</button>
+                    </form>
+                    <div id="exitFormMessage" class="hidden"></div>
+                </div>
+            </div>
+
+            <!-- Loading & Error States -->
+            <div id="loader" class="hidden">
+                <div class="spinner"></div>
+                <p>Syncing with Backend...</p>
+            </div>
+            <div id="errorContainer" class="hidden error-msg"></div>
+
+            <!-- Slots Grid Section -->
+            <section class="slots-section">
+                <h2 class="section-title">Live Parking Status</h2>
+                <div id="slotsGrid" class="slots-grid">
+                    <!-- Slot cards injected via JS -->
+                </div>
+            </section>
+
+            <!-- Activity Table Section -->
+            <section class="activity-section">
+                <h2 class="section-title">Recent Activity</h2>
+                <div class="table-container glass-panel">
+                    <table id="activityTable">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Action</th>
+                                <th>Vehicle No</th>
+                                <th>Assigned Slot</th>
+                                <th>Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activityTableBody">
+                            <tr class="empty-row">
+                                <td colspan="5">No recent activity in this session</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Application Logic -->
+    <script src="app.js"></script>
+</body>
+</html>
