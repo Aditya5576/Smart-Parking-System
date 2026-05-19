@@ -1,48 +1,120 @@
-# Smart Parking System - Starter App
+# 🚗 Smart Parking Management System
 
-A basic starter application to verify the tech stack connections (Frontend → Node.js → MySQL).
+A modern full-stack Smart Parking Management System built using:
 
-## Project Structure
-- `/frontend` - HTML/CSS/Vanilla JS (Modern Dark UI)
-- `/backend` - Node.js Express Server + MySQL DB Connection
+- Frontend: HTML, CSS, JavaScript
+- Backend: Node.js + Express.js
+- Database: MySQL
+- Algorithm Engine: C++ Min Heap Allocation
 
-## Step 1: Database Setup
-1. Make sure you have MySQL installed and running.
-2. Open MySQL Workbench (or command line).
-3. Open and run the `backend/database.sql` script to create the `smart_parking` database and insert dummy data.
-4. Ensure your credentials in `backend/db.js` match your local MySQL setup (Default: root / root123).
+---
 
-## Step 1.5: Compile the C++ Engine (CRITICAL)
-Because this project uses a C++ Min Heap for allocation, you **must** compile the C++ file before starting the server.
-1. Make sure you have a C++ compiler installed (like **MinGW-w64** for Windows).
-2. Open a terminal and navigate to the `engine` folder:
-   ```bash
-   cd engine
-   ```
-3. Compile the file into an executable named `allocator.exe`:
-   ```bash
-   g++ allocator.cpp -o allocator.exe
-   ```
-   *(If you get a "command not found" error, you need to install MinGW and add it to your system PATH).*
+# ✨ Features
 
-## Step 2: Start the Backend
-1. Open a terminal and navigate to the backend folder:
-   ```bash
-   cd backend
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Start the server:
-   ```bash
-   node server.js
-   ```
-4. You should see:
-   - "Server running on port 5000"
-   - "MySQL Connected Successfully!"
+## 🚘 Vehicle Entry
+- Park vehicles dynamically
+- Automatic nearest-slot allocation
+- Real-time slot updates
 
-## Step 3: Run the Frontend
-1. Open the `/frontend/index.html` file in your browser. (Using VS Code Live Server is recommended).
-2. Click the **"Load Parking Slots"** button.
-3. Verify that the UI successfully fetches and displays the data from your MySQL database!
+## 🚪 Vehicle Exit
+- Exit parked vehicles
+- Automatic bill generation
+- Slot recovery system
+
+## 💳 Billing System
+- ₹20 first hour
+- ₹10 additional hours
+
+## 🧠 C++ Min Heap Allocation
+- High-performance nearest-slot allocation
+- O(log N) allocation complexity
+- Integrated with Node.js backend
+
+## 📊 Dashboard
+- Total Slots
+- Occupied Slots
+- Free Slots
+- Total Earnings
+- Recent Parking Activity
+
+## 🎨 Modern UI
+- Glassmorphism design
+- Dark premium dashboard
+- Responsive layout
+- Hover animations
+
+---
+
+# 🏗️ Project Architecture
+
+Frontend (HTML/CSS/JS)
+↓
+Node.js Backend (Express)
+↓
+MySQL Database
+↓
+C++ Min Heap Engine
+
+---
+
+# ⚙️ Tech Stack
+
+| Technology | Usage |
+|---|---|
+| HTML/CSS/JS | Frontend UI |
+| Node.js | Backend APIs |
+| Express.js | Server Framework |
+| MySQL | Database |
+| C++ | Min Heap Allocation Engine |
+| GitHub | Version Control |
+
+---
+
+# 🚀 How To Run
+
+## 1. Start MySQL Server
+
+Make sure MySQL server is running.
+
+---
+
+## 2. Start Backend
+
+```bash
+cd backend
+node server.js
+```
+
+---
+
+## 3. Start Frontend
+
+Open:
+
+frontend/index.html
+
+using VS Code Live Server.
+
+---
+
+## 4. Compile C++ Engine
+
+```bash
+g++ allocator.cpp -static -static-libgcc -static-libstdc++ -o allocator.exe
+```
+
+---
+
+# 🧠 Min Heap Logic
+
+The parking allocation engine uses a Min Heap (Priority Queue) implemented in C++ to always assign the nearest available parking slot efficiently.
+
+Time Complexity:
+- Insertion: O(log N)
+- Allocation: O(log N)
+
+---
+
+# 👨‍💻 Author
+
+Aditya Patil
