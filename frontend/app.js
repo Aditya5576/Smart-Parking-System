@@ -1,5 +1,5 @@
 // API Configuration
-const API_URL = 'http://localhost:5000/api/slots';
+const API_URL = 'https://smart-parking-system-8lqz.onrender.com/api/slots';
 
 // State Management (Session-based as per constraints)
 let totalEarnings = 0;
