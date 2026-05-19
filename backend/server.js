@@ -18,13 +18,19 @@ const app = express();
    RAZORPAY INSTANCE
    Keys come from .env locally, from Render env vars in production.
    NEVER hardcode these keys!
+   Initialized conditionally so server doesn't crash if keys are missing.
 ====================================================== */
-const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET
-});
+let razorpay = null;
 
-console.log('[Razorpay] Initialized with Key ID:', process.env.RAZORPAY_KEY_ID ? '✓ Found' : '✗ MISSING - check .env');
+if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+    razorpay = new Razorpay({
+        key_id: process.env.RAZORPAY_KEY_ID,
+        key_secret: process.env.RAZORPAY_KEY_SECRET
+    });
+    console.log('[Razorpay] ✓ Initialized successfully with Key ID:', process.env.RAZORPAY_KEY_ID);
+} else {
+    console.warn('[Razorpay] ✗ Keys missing - payment routes will return error until env vars are set on Render.');
+}
 
 /* ======================================================
    MIDDLEWARE
@@ -305,6 +311,10 @@ app.post('/api/exit', async (req, res) => {
 
 app.post('/api/create-order', async (req, res) => {
     const { vehicleNo } = req.body;
+
+    if (!razorpay) {
+        return res.status(503).json({ success: false, message: 'Payment service not configured. Please add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to Render environment variables.' });
+    }
 
     if (!vehicleNo) {
         return res.status(400).json({ success: false, message: 'Vehicle number is required' });
