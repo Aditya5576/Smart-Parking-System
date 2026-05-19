@@ -1,27 +1,35 @@
-// db.js - Handles the MySQL connection
 const mysql = require('mysql2');
 
-// Create a connection pool using the provided credentials
 const pool = mysql.createPool({
-    host: 'localhost',
-    user: 'root',
-    password: 'root123',
-    database: 'smart_parking',
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: process.env.DB_PORT,
+
     waitForConnections: true,
     connectionLimit: 10,
-    queueLimit: 0
-});
+    queueLimit: 0,
 
-// Test the connection
-pool.getConnection((err, connection) => {
-    if (err) {
-        console.error('MySQL Connection Error:', err.message);
-        console.error('Make sure MySQL is running and the credentials are correct.');
-    } else {
-        console.log('MySQL Connected Successfully!');
-        connection.release(); // release to pool
+    ssl: {
+        rejectUnauthorized: false
     }
 });
 
-// Export a promise-based interface for async/await usage in routes
+// Test connection
+pool.getConnection((err, connection) => {
+
+    if (err) {
+
+        console.error('MySQL Connection Error:', err);
+
+    } else {
+
+        console.log('MySQL Connected Successfully!');
+
+        connection.release();
+    }
+
+});
+
 module.exports = pool.promise();

@@ -88,30 +88,11 @@ app.post('/api/park', async (req, res) => {
             });
         }
 
-        // 2. Format slots for the C++ engine (e.g., ["A1:10", "B2:5"])
-        const args = freeSlots.map(slot => `${slot.slot_id}:${slot.distance}`);
-
-        // 3. Define path to the compiled C++ executable
-        const enginePath = path.join(__dirname, '..', 'engine', 'allocator.exe');
-
-        // 4. Execute the C++ Min Heap engine
-        execFile(enginePath, args, async (error, stdout, stderr) => {
-            if (error) {
-                console.error('C++ Engine Error:', error);
-                return res.status(500).json({ 
-                    success: false, 
-                    message: 'C++ Allocation Engine failed. Did you compile allocator.cpp?',
-                    error: error.message 
-                });
-            }
-
-            // The C++ engine prints the best slot ID to stdout
-            const bestSlotId = stdout.trim();
-
+        // Function to handle database updates after a slot is found
+        const finalizeParking = async (bestSlotId, method) => {
             if (bestSlotId === 'NONE' || !bestSlotId) {
                 return res.status(400).json({ success: false, message: 'Allocation failed.' });
             }
-
             try {
                 // 5. Mark the chosen slot as OCCUPIED
                 await db.query(`
@@ -131,14 +112,47 @@ app.post('/api/park', async (req, res) => {
                 // 7. Return the assigned slot to the frontend
                 res.json({
                     success: true,
-                    message: 'Vehicle parked successfully using Min Heap',
+                    message: `Vehicle parked successfully using ${method}`,
                     assignedSlot: bestSlotId
                 });
             } catch (dbError) {
                 console.error('Database update error after allocation:', dbError);
                 res.status(500).json({ success: false, message: 'Database error', error: dbError.message });
             }
-        });
+        };
+
+        // 2. Hybrid Allocation Strategy
+        if (process.env.NODE_ENV === 'production') {
+            // Node.js Fallback for Live Cloud Deployment
+            let bestSlotId = null;
+            let minDistance = Infinity;
+            
+            for (const slot of freeSlots) {
+                if (slot.distance < minDistance) {
+                    minDistance = slot.distance;
+                    bestSlotId = slot.slot_id;
+                }
+            }
+            await finalizeParking(bestSlotId, 'Node.js Fallback (Cloud)');
+
+        } else {
+            // C++ Min Heap Execution for Local Environment
+            const args = freeSlots.map(slot => `${slot.slot_id}:${slot.distance}`);
+            const enginePath = path.join(__dirname, '..', 'engine', 'allocator.exe');
+
+            execFile(enginePath, args, async (error, stdout, stderr) => {
+                if (error) {
+                    console.error('C++ Engine Error:', error);
+                    return res.status(500).json({ 
+                        success: false, 
+                        message: 'C++ Allocation Engine failed.',
+                        error: error.message 
+                    });
+                }
+                const bestSlotId = stdout.trim();
+                await finalizeParking(bestSlotId, 'C++ Min Heap (Local)');
+            });
+        }
 
     } catch (error) {
 
@@ -259,7 +273,7 @@ app.post('/api/exit', async (req, res) => {
    SERVER START
 ====================================================== */
 
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
