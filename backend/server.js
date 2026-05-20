@@ -463,6 +463,45 @@ app.post('/api/verify-payment', async (req, res) => {
 });
 
 /* ======================================================
+   ADMIN: FULL RESET
+   One-shot route to:
+   1. Fix the vehicles table schema (make vehicle_type nullable)
+   2. Clear ALL vehicle records from the vehicles table
+   3. Reset ALL slots to FREE
+   Use this to clear all stale/broken OCCUPIED slots in one go.
+   Usage: GET /api/full-reset
+====================================================== */
+
+app.get('/api/full-reset', async (req, res) => {
+    try {
+        const log = [];
+
+        // 1. Fix schema — make vehicle_type nullable so new parks never fail
+        try {
+            await db.query(`ALTER TABLE vehicles MODIFY COLUMN vehicle_type VARCHAR(20) DEFAULT NULL`);
+            log.push('✅ Schema fixed: vehicle_type is now nullable');
+        } catch (e) {
+            log.push(`ℹ️ Schema already OK or skipped: ${e.message}`);
+        }
+
+        // 2. Clear all vehicle records
+        const [delResult] = await db.query(`DELETE FROM vehicles`);
+        log.push(`✅ Cleared ${delResult.affectedRows} vehicle records`);
+
+        // 3. Reset all slots to FREE
+        const [updateResult] = await db.query(`UPDATE slots SET status = 'FREE', vehicle_type = NULL`);
+        log.push(`✅ Reset ${updateResult.affectedRows} slots to FREE`);
+
+        console.log('[full-reset] Done:', log);
+        res.json({ success: true, message: 'Full reset complete! All slots are FREE.', log });
+
+    } catch (error) {
+        console.error('[full-reset] Error:', error);
+        res.status(500).json({ success: false, message: 'Full reset failed', error: error.message });
+    }
+});
+
+/* ======================================================
    ADMIN: FIX DB SCHEMA
    Alters the Railway cloud vehicles table so vehicle_type allows NULL.
    This fixes the NOT NULL constraint causing "Database error" on parking.
