@@ -136,9 +136,9 @@ app.post('/api/park', async (req, res) => {
                 // 6. Insert vehicle into vehicles table
                 await db.query(`
                     INSERT INTO vehicles
-                    (vehicle_no, assigned_slot, entry_time)
-                    VALUES (?, ?, NOW())
-                `, [vehicleNo, bestSlotId]);
+                    (vehicle_no, vehicle_type, assigned_slot, entry_time)
+                    VALUES (?, ?, ?, NOW())
+                `, [vehicleNo, vehicleType, bestSlotId]);
 
                 // 7. Return the assigned slot to the frontend
                 res.json({
@@ -459,6 +459,44 @@ app.post('/api/verify-payment', async (req, res) => {
     } catch (error) {
         console.error('[verify-payment] Error:', error);
         res.status(500).json({ success: false, message: 'Payment verification failed', error: error.message });
+    }
+});
+
+/* ======================================================
+   ADMIN: FIX DB SCHEMA
+   Alters the Railway cloud vehicles table so vehicle_type allows NULL.
+   This fixes the NOT NULL constraint causing "Database error" on parking.
+   Usage: GET /api/fix-db-schema
+====================================================== */
+
+app.get('/api/fix-db-schema', async (req, res) => {
+    try {
+        const results = [];
+
+        // Make vehicle_type nullable (in case it was created as NOT NULL)
+        await db.query(`ALTER TABLE vehicles MODIFY COLUMN vehicle_type VARCHAR(20) DEFAULT NULL`);
+        results.push('✅ vehicles.vehicle_type → nullable');
+
+        // Drop FOREIGN KEY constraint if it exists (Railway can have issues with it)
+        // We do this safely by checking first
+        const [fkRows] = await db.query(`
+            SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'vehicles'
+              AND REFERENCED_TABLE_NAME = 'slots'
+        `);
+
+        for (const fk of fkRows) {
+            await db.query(`ALTER TABLE vehicles DROP FOREIGN KEY ${fk.CONSTRAINT_NAME}`);
+            results.push(`✅ Dropped FK: ${fk.CONSTRAINT_NAME}`);
+        }
+
+        if (fkRows.length === 0) results.push('ℹ️ No foreign keys to drop');
+
+        res.json({ success: true, message: 'Schema fixed successfully', changes: results });
+    } catch (error) {
+        console.error('[fix-db-schema] Error:', error);
+        res.status(500).json({ success: false, message: 'Schema fix failed', error: error.message });
     }
 });
 
