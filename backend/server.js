@@ -463,6 +463,52 @@ app.post('/api/verify-payment', async (req, res) => {
 });
 
 /* ======================================================
+   ADMIN: FIX STALE SLOTS
+   One-time cleanup route.
+   Resets OCCUPIED slots that have no matching vehicle record in the vehicles table.
+   This fixes orphaned slots from before the LEFT JOIN was introduced.
+   Usage: GET /api/fix-stale-slots
+====================================================== */
+
+app.get('/api/fix-stale-slots', async (req, res) => {
+    try {
+        // Find all OCCUPIED slots that have no active vehicle record
+        const [staleSlots] = await db.query(`
+            SELECT s.slot_id 
+            FROM slots s
+            LEFT JOIN vehicles v ON s.slot_id = v.assigned_slot AND v.exit_time IS NULL
+            WHERE s.status = 'OCCUPIED' AND v.vehicle_no IS NULL
+        `);
+
+        if (staleSlots.length === 0) {
+            return res.json({ success: true, message: 'No stale slots found. Everything is clean!', fixed: 0 });
+        }
+
+        const staleIds = staleSlots.map(s => s.slot_id);
+
+        // Reset them to FREE
+        await db.query(`
+            UPDATE slots 
+            SET status = 'FREE', vehicle_type = NULL 
+            WHERE slot_id IN (?)
+        `, [staleIds]);
+
+        console.log(`[fix-stale-slots] Reset ${staleIds.length} stale slots:`, staleIds);
+
+        res.json({
+            success: true,
+            message: `Fixed ${staleIds.length} stale slot(s) → set back to FREE.`,
+            fixedSlots: staleIds,
+            fixed: staleIds.length
+        });
+
+    } catch (error) {
+        console.error('[fix-stale-slots] Error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fix stale slots', error: error.message });
+    }
+});
+
+/* ======================================================
    SERVER START
 ====================================================== */
 
