@@ -573,59 +573,92 @@ function updateStats(slotsData) {
 function renderSlots(slotsData) {
     if (slotsData.length === 0) {
         slotsGrid.innerHTML = `
-            <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: #888;">
+            <div style="grid-column:1/-1;text-align:center;padding:2rem;color:#888;">
                 No slots found in database.
-            </div>
-        `;
+            </div>`;
         return;
     }
 
+    // ── Group slots by row prefix (A, B, C…) ──
+    const rows = {};
     slotsData.forEach(slot => {
-        const isFree = slot.status === 'FREE';
-        const statusClass = isFree ? 'slot-free' : 'slot-occupied';
-        const labelText = isFree ? 'FREE' : 'OCCUPIED';
-        
-        let centerContent = '';
-        let bottomContent = '';
-
-        if (!isFree) {
-            const emoji = slot.vehicle_type === 'Car' ? '🚗' : (slot.vehicle_type === 'Bike' ? '🏍️' : '🚙');
-            centerContent = `<div class="vehicle-emoji">${emoji}</div>`;
-            
-            // Check for persistent backend data
-            if (slot.vehicle_no && slot.entry_time) {
-                const entryMs = new Date(slot.entry_time).getTime();
-                bottomContent = `
-                    <div class="slot-timer" data-entry="${entryMs}">⏱ 00:00:00</div>
-                    <div class="vehicle-no-label">${slot.vehicle_no}</div>
-                `;
-            } else {
-                bottomContent = `<div class="slot-timer">⏱ --:--:--</div>`;
-            }
-        }
-
-        const cardHTML = `
-            <div class="map-slot ${statusClass}">
-                <div class="slot-id-bg">${slot.slot_id}</div>
-                
-                <div class="slot-top">
-                    <span class="slot-id">${slot.slot_id}</span>
-                    <span class="slot-distance">${slot.distance}m</span>
-                </div>
-                
-                <div class="slot-center">
-                    ${centerContent}
-                </div>
-                
-                <div class="slot-bottom">
-                    <span class="slot-label">${labelText}</span>
-                    ${bottomContent}
-                </div>
-            </div>
-        `;
-        slotsGrid.innerHTML += cardHTML;
+        const rowKey = slot.slot_id.replace(/[^A-Za-z]/g, '').toUpperCase() || 'X';
+        if (!rows[rowKey]) rows[rowKey] = [];
+        rows[rowKey].push(slot);
     });
+
+    const rowKeys = Object.keys(rows).sort();
+
+    // ── Build the lot HTML ──
+    let html = `
+        <div class="lot-entrance">
+            <span class="lot-entrance-arrow">⬇</span>
+            ENTRANCE &nbsp;/&nbsp; EXIT
+            <span class="lot-entrance-arrow">⬇</span>
+        </div>`;
+
+    rowKeys.forEach((rowKey, idx) => {
+        // Row group
+        html += `
+        <div class="lot-row-group">
+            <div class="lot-row-label">Row ${rowKey}</div>
+            <div class="lot-row-slots">`;
+
+        rows[rowKey].forEach(slot => {
+            const isFree = slot.status === 'FREE';
+            const statusClass = isFree ? 'slot-free' : 'slot-occupied';
+            const label = isFree ? 'FREE' : 'OCCUPIED';
+
+            let centerHTML = '';
+            let bottomExtra = '';
+
+            if (isFree) {
+                centerHTML = `<div class="slot-p-symbol">P</div>`;
+            } else {
+                const emoji = slot.vehicle_type === 'Bike' ? '🏍️' : '🚗';
+                centerHTML = `<div class="vehicle-emoji">${emoji}</div>`;
+
+                if (slot.vehicle_no && slot.entry_time) {
+                    const entryMs = new Date(slot.entry_time).getTime();
+                    bottomExtra = `
+                        <div class="slot-timer" data-entry="${entryMs}">⏱ 00:00:00</div>
+                        <div class="vehicle-no-label">${slot.vehicle_no}</div>`;
+                } else {
+                    bottomExtra = `<div class="slot-timer">⏱ --:--:--</div>`;
+                }
+            }
+
+            html += `
+                <div class="map-slot ${statusClass}">
+                    <div class="slot-id-bg">${slot.slot_id}</div>
+                    <div class="slot-top">
+                        <span class="slot-id">${slot.slot_id}</span>
+                        <span class="slot-distance">${slot.distance}m</span>
+                    </div>
+                    <div class="slot-center">${centerHTML}</div>
+                    <div class="slot-bottom">
+                        <span class="slot-label">${label}</span>
+                        ${bottomExtra}
+                    </div>
+                </div>`;
+        });
+
+        html += `</div></div>`; // close lot-row-slots + lot-row-group
+
+        // Driving lane between rows (not after the last row)
+        if (idx < rowKeys.length - 1) {
+            html += `
+        <div class="lot-lane">
+            <div class="lot-lane-line"></div>
+            <span class="lot-lane-label">↔ DRIVING LANE ↔</span>
+            <div class="lot-lane-line"></div>
+        </div>`;
+        }
+    });
+
+    slotsGrid.innerHTML = html;
 }
+
 
 // Live Timer Update Loop
 setInterval(() => {

@@ -313,94 +313,244 @@ select option {
     gap: 0.6rem;
 }
 
-.parking-map {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 1rem;
-    margin-bottom: 3rem;
-    padding: 1rem;
-    background: rgba(0, 0, 0, 0.2);
+/* ============================================================
+   REALISTIC PARKING LOT
+============================================================ */
+
+/* Outer lot wrapper */
+.parking-lot {
+    background: #0d0d10;
+    border: 1px solid rgba(255,255,255,0.07);
     border-radius: 20px;
-    border: 1px dashed rgba(255,255,255,0.1);
+    padding: 1.25rem 1rem;
+    margin-bottom: 3rem;
+    position: relative;
+    overflow: hidden;
 }
 
-/* Realistic Map Slot */
+/* Subtle asphalt texture overlay */
+.parking-lot::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        radial-gradient(circle at 20% 80%, rgba(99,102,241,0.04) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(239,68,68,0.04) 0%, transparent 50%);
+    pointer-events: none;
+    border-radius: 20px;
+}
+
+/* Entrance banner */
+.lot-entrance {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+    padding: 0.5rem 1rem;
+    background: rgba(99,102,241,0.08);
+    border: 1px solid rgba(99,102,241,0.2);
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(165,180,252,0.8);
+}
+
+.lot-entrance-arrow {
+    font-size: 1rem;
+    animation: bounceDown 1.5s infinite ease-in-out;
+}
+
+@keyframes bounceDown {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(4px); }
+}
+
+/* Row container (Row A, Row B, etc.) */
+.lot-row-group {
+    margin-bottom: 0.5rem;
+}
+
+.lot-row-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.2);
+    margin-bottom: 0.5rem;
+    padding-left: 0.25rem;
+}
+
+.lot-row-slots {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.6rem;
+}
+
+/* Driving lane between rows */
+.lot-lane {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.4rem 0;
+    margin: 0.25rem 0;
+}
+
+.lot-lane-line {
+    flex: 1;
+    height: 2px;
+    background: repeating-linear-gradient(
+        90deg,
+        rgba(250,204,21,0.35) 0px,
+        rgba(250,204,21,0.35) 18px,
+        transparent 18px,
+        transparent 36px
+    );
+    border-radius: 2px;
+}
+
+.lot-lane-label {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: rgba(250,204,21,0.4);
+    white-space: nowrap;
+    text-transform: uppercase;
+}
+
+/* Legacy .parking-map alias so JS still works */
+.parking-map {
+    display: contents;
+}
+
+/* ============================================================
+   PARKING BAY (map-slot)
+============================================================ */
 .map-slot {
-    background: var(--card-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 2px solid var(--glass-border);
-    border-radius: 12px;
-    aspect-ratio: 3 / 4;
+    background: linear-gradient(180deg, rgba(20,20,28,0.95) 0%, rgba(12,12,18,0.98) 100%);
+    border-top: none;
+    border-bottom: none;
+    /* Painted bay lines on left & right */
+    border-left: 3px solid rgba(255,255,255,0.12);
+    border-right: 3px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    aspect-ratio: 2.2 / 4;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding: 0.8rem;
+    padding: 0.75rem 0.6rem 0.65rem;
     position: relative;
     overflow: hidden;
-    transition: all 0.3s ease;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    cursor: default;
+}
+
+/* Top kerb line */
+.map-slot::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    border-radius: 8px 8px 0 0;
+    background: rgba(255,255,255,0.07);
+}
+
+/* Bottom kerb line */
+.map-slot::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 0 0 8px 8px;
+    background: rgba(255,255,255,0.05);
 }
 
 .map-slot:hover {
-    transform: scale(1.03);
+    transform: translateY(-3px) scale(1.02);
 }
 
+/* Big watermark slot ID */
 .slot-id-bg {
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 5rem;
-    font-weight: 800;
-    color: rgba(255,255,255,0.08);
+    transform: translate(-50%, -52%);
+    font-size: 4.5rem;
+    font-weight: 900;
+    color: rgba(255,255,255,0.04);
     z-index: 0;
     pointer-events: none;
+    letter-spacing: -2px;
+    user-select: none;
 }
 
+/* ── Slot Top Row ── */
 .slot-top {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
     z-index: 1;
 }
 
 .slot-id {
-    font-size: 1.1rem;
-    font-weight: 700;
-    background: rgba(0,0,0,0.5);
-    padding: 4px 8px;
-    border-radius: 6px;
-    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: rgba(255,255,255,0.9);
+    letter-spacing: 0.5px;
 }
 
 .slot-distance {
-    font-size: 0.75rem;
-    color: var(--text-muted);
+    font-size: 0.65rem;
+    color: rgba(255,255,255,0.3);
     font-weight: 600;
-    background: rgba(0,0,0,0.3);
+    background: rgba(255,255,255,0.06);
     padding: 2px 6px;
-    border-radius: 4px;
+    border-radius: 20px;
 }
 
+/* ── Center ── */
 .slot-center {
     flex: 1;
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1;
+    flex-direction: column;
+    gap: 0.3rem;
 }
 
+/* Free: big P symbol */
+.slot-p-symbol {
+    font-size: 3rem;
+    font-weight: 900;
+    color: rgba(34,197,94,0.18);
+    line-height: 1;
+    font-family: 'Outfit', sans-serif;
+    letter-spacing: -2px;
+    user-select: none;
+    transition: color 0.3s ease;
+}
+
+.slot-free:hover .slot-p-symbol {
+    color: rgba(34,197,94,0.35);
+}
+
+/* Occupied: vehicle emoji */
 .vehicle-emoji {
-    font-size: 3.5rem;
-    filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5));
-    animation: parkIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    font-size: 2.8rem;
+    filter: drop-shadow(0 6px 12px rgba(0,0,0,0.6));
+    animation: parkIn 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: block;
 }
 
 @keyframes parkIn {
-    0% { transform: scale(0.5) translateY(50px); opacity: 0; }
-    100% { transform: scale(1) translateY(0); opacity: 1; }
+    0%   { transform: scale(0.4) translateY(30px); opacity: 0; }
+    100% { transform: scale(1)   translateY(0);    opacity: 1; }
 }
 
+/* ── Bottom Info ── */
 .slot-bottom {
     display: flex;
     flex-direction: column;
@@ -410,65 +560,76 @@ select option {
 }
 
 .slot-label {
-    font-size: 0.75rem;
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+}
+
+/* Number plate style */
+.vehicle-no-label {
+    font-size: 0.62rem;
     font-weight: 700;
-    letter-spacing: 1px;
+    color: #1a1a1a;
+    background: linear-gradient(135deg, #fde047, #facc15);
+    padding: 2px 7px;
+    border-radius: 3px;
+    letter-spacing: 0.5px;
+    border: 1px solid rgba(0,0,0,0.2);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+    margin-top: 1px;
+    white-space: nowrap;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .slot-timer {
-    font-size: 0.8rem;
-    font-family: monospace;
-    color: #e2e8f0;
-    background: rgba(0,0,0,0.5);
-    padding: 2px 8px;
+    font-size: 0.62rem;
+    font-family: 'Courier New', monospace;
+    color: rgba(226,232,240,0.85);
+    background: rgba(0,0,0,0.55);
+    padding: 2px 7px;
     border-radius: 4px;
+    letter-spacing: 0.5px;
 }
 
-.vehicle-no-label {
-    font-size: 0.75rem;
-    color: #f8fafc;
-    font-weight: 600;
-    background: rgba(255,255,255,0.1);
-    padding: 2px 6px;
-    border-radius: 4px;
-    margin-top: 2px;
-}
-
-/* Free Slot State */
+/* ── FREE state ── */
 .slot-free {
-    border-color: rgba(34, 197, 94, 0.4);
-    box-shadow: inset 0 0 20px rgba(34, 197, 94, 0.1);
+    border-left-color:  rgba(34,197,94,0.35);
+    border-right-color: rgba(34,197,94,0.35);
+    box-shadow:
+        inset 0 0 30px rgba(34,197,94,0.06),
+        0 0 0 1px rgba(34,197,94,0.15);
     animation: breathe-green 3s infinite alternate ease-in-out;
 }
+.slot-free .slot-label { color: var(--success); }
 
-.slot-free .slot-label {
-    color: var(--success);
-}
-
-/* Occupied Slot State */
+/* ── OCCUPIED state ── */
 .slot-occupied {
-    border-color: rgba(239, 68, 68, 0.5);
-    box-shadow: inset 0 0 30px rgba(239, 68, 68, 0.15);
+    border-left-color:  rgba(239,68,68,0.5);
+    border-right-color: rgba(239,68,68,0.5);
+    background: linear-gradient(180deg, rgba(30,10,10,0.97) 0%, rgba(18,6,6,0.99) 100%);
+    box-shadow:
+        inset 0 0 40px rgba(239,68,68,0.12),
+        0 0 0 1px rgba(239,68,68,0.25);
     animation: pulse-red 2s infinite alternate ease-in-out;
 }
+.slot-occupied .slot-label { color: var(--danger); }
 
-.slot-occupied .slot-label {
-    color: var(--danger);
-}
-
-/* Animations */
+/* ── Animations ── */
 @keyframes breathe-green {
-    0% { box-shadow: inset 0 0 10px rgba(34, 197, 94, 0.05), 0 0 5px rgba(34, 197, 94, 0.1); border-color: rgba(34, 197, 94, 0.2); }
-    100% { box-shadow: inset 0 0 25px rgba(34, 197, 94, 0.2), 0 0 15px rgba(34, 197, 94, 0.3); border-color: rgba(34, 197, 94, 0.6); }
+    0%   { box-shadow: inset 0 0 15px rgba(34,197,94,0.04), 0 0 0 1px rgba(34,197,94,0.1);  border-color: rgba(34,197,94,0.2); }
+    100% { box-shadow: inset 0 0 35px rgba(34,197,94,0.18), 0 0 12px rgba(34,197,94,0.25); border-color: rgba(34,197,94,0.65); }
 }
 
 @keyframes pulse-red {
-    0% { box-shadow: inset 0 0 15px rgba(239, 68, 68, 0.1), 0 0 5px rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.3); }
-    100% { box-shadow: inset 0 0 40px rgba(239, 68, 68, 0.3), 0 0 20px rgba(239, 68, 68, 0.4); border-color: rgba(239, 68, 68, 0.8); }
+    0%   { box-shadow: inset 0 0 20px rgba(239,68,68,0.08), 0 0 0 1px rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.3); }
+    100% { box-shadow: inset 0 0 50px rgba(239,68,68,0.25), 0 0 16px rgba(239,68,68,0.4); border-color: rgba(239,68,68,0.85); }
 }
 
 .breath-anim { animation: breathe-green 3s infinite alternate ease-in-out; }
-.pulse-anim { animation: pulse-red 2s infinite alternate ease-in-out; }
+.pulse-anim  { animation: pulse-red 2s infinite alternate ease-in-out; }
 
 /* Activity Table */
 .table-container {
@@ -792,7 +953,86 @@ html, body {
         padding: 1px 4px;
     }
 
-    /* ---- Activity Table → Card View on Mobile ---- */
+    /* ---- Realistic Parking Lot (mobile) ---- */
+    .parking-lot {
+        padding: 0.85rem 0.65rem;
+        border-radius: 14px;
+        margin-bottom: 1.5rem;
+    }
+
+    .lot-entrance {
+        font-size: 0.65rem;
+        letter-spacing: 1.5px;
+        padding: 0.4rem 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .lot-row-label {
+        font-size: 0.6rem;
+        margin-bottom: 0.4rem;
+    }
+
+    .lot-row-slots {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.45rem;
+    }
+
+    .map-slot {
+        aspect-ratio: 2 / 4;
+        padding: 0.5rem 0.4rem 0.5rem;
+        border-radius: 6px;
+        border-left-width: 2px;
+        border-right-width: 2px;
+    }
+
+    .slot-id-bg {
+        font-size: 2.8rem;
+    }
+
+    .slot-id {
+        font-size: 0.72rem;
+    }
+
+    .slot-distance {
+        font-size: 0.55rem;
+        padding: 1px 4px;
+    }
+
+    .slot-p-symbol {
+        font-size: 2.2rem;
+    }
+
+    .vehicle-emoji {
+        font-size: 1.8rem;
+    }
+
+    .slot-label {
+        font-size: 0.52rem;
+        letter-spacing: 1px;
+    }
+
+    .slot-timer {
+        font-size: 0.52rem;
+        padding: 1px 5px;
+    }
+
+    .vehicle-no-label {
+        font-size: 0.5rem;
+        padding: 1px 4px;
+        border-radius: 2px;
+    }
+
+    .lot-lane {
+        padding: 0.3rem 0;
+        gap: 0.5rem;
+    }
+
+    .lot-lane-label {
+        font-size: 0.55rem;
+        letter-spacing: 1.5px;
+    }
+
+
     .activity-section {
         margin-bottom: 2rem;
     }
@@ -922,15 +1162,20 @@ html, body {
         font-size: 0.65rem;
     }
 
-    .parking-map {
+    .lot-row-slots {
         grid-template-columns: repeat(2, 1fr);
-        gap: 0.5rem;
+        gap: 0.4rem;
     }
 
     .vehicle-emoji {
-        font-size: 1.75rem;
+        font-size: 1.5rem;
+    }
+
+    .slot-p-symbol {
+        font-size: 1.8rem;
     }
 }
+
 
 /* ============================================================
    PAYMENT MODAL STYLES
