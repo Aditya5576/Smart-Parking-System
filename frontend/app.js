@@ -393,37 +393,99 @@ function renderActivityTable() {
                 <td colspan="7" style="text-align: center; color: #888;">No recent activity (last 24 hours)</td>
             </tr>
         `;
+    } else {
+        activityTableBody.innerHTML = '';
+        recentActivity.forEach(activity => {
+            const badgeClass = activity.status === 'PARKED' ? 'action-entry' : 'action-exit';
+            const actionCell = activity.status === 'PARKED'
+                ? `<button class="pay-row-btn" data-vehicle="${activity.vehicleNo}">💳 Pay & Exit</button>`
+                : `<span style="color: #52525b; font-size: 0.8rem;">—</span>`;
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td style="font-weight: 600;">${activity.vehicleNo}</td>
+                <td>${activity.slot}</td>
+                <td>${activity.entryTime}</td>
+                <td>${activity.exitTime}</td>
+                <td>${activity.amount}</td>
+                <td><span class="action-badge ${badgeClass}">${activity.status}</span></td>
+                <td>${actionCell}</td>
+            `;
+            activityTableBody.appendChild(row);
+        });
+    }
+
+    // Also update mobile card view
+    renderMobileActivityCards();
+}
+
+function renderMobileActivityCards() {
+    const container = document.getElementById('mobileActivityCards');
+    if (!container) return;
+
+    if (recentActivity.length === 0) {
+        container.innerHTML = `
+            <div style="text-align:center; color:#888; padding:1.5rem 1rem; font-size:0.9rem;">
+                No recent activity (last 24 hours)
+            </div>
+        `;
         return;
     }
 
-    activityTableBody.innerHTML = '';
+    container.innerHTML = '';
     recentActivity.forEach(activity => {
         const badgeClass = activity.status === 'PARKED' ? 'action-entry' : 'action-exit';
+        const actionHTML = activity.status === 'PARKED'
+            ? `<div class="mobile-card-actions">
+                 <button class="pay-row-btn" data-vehicle="${activity.vehicleNo}">💳 Pay & Exit</button>
+               </div>`
+            : '';
 
-        // Show Pay & Exit button only for PARKED vehicles
-        const actionCell = activity.status === 'PARKED'
-            ? `<button class="pay-row-btn" data-vehicle="${activity.vehicleNo}">💳 Pay & Exit</button>`
-            : `<span style="color: #52525b; font-size: 0.8rem;">—</span>`;
-
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td style="font-weight: 600;">${activity.vehicleNo}</td>
-            <td>${activity.slot}</td>
-            <td>${activity.entryTime}</td>
-            <td>${activity.exitTime}</td>
-            <td>${activity.amount}</td>
-            <td><span class="action-badge ${badgeClass}">${activity.status}</span></td>
-            <td>${actionCell}</td>
+        const card = document.createElement('div');
+        card.className = 'mobile-activity-card';
+        card.innerHTML = `
+            <div class="mobile-card-top">
+                <span class="mobile-card-vehicle">🚗 ${activity.vehicleNo}</span>
+                <span class="action-badge ${badgeClass}">${activity.status}</span>
+            </div>
+            <div class="mobile-card-row">
+                <span>Slot</span>
+                <span>${activity.slot}</span>
+            </div>
+            <div class="mobile-card-row">
+                <span>Entry</span>
+                <span>${activity.entryTime}</span>
+            </div>
+            <div class="mobile-card-row">
+                <span>Exit</span>
+                <span>${activity.exitTime}</span>
+            </div>
+            <div class="mobile-card-row">
+                <span>Amount</span>
+                <span>${activity.amount}</span>
+            </div>
+            ${actionHTML}
         `;
-        activityTableBody.appendChild(row);
+        container.appendChild(card);
     });
 }
+
 
 // Event delegation: handle Pay & Exit button clicks anywhere in the table
 activityTableBody.addEventListener('click', async (e) => {
     const btn = e.target.closest('.pay-row-btn');
     if (!btn) return;
+    await handlePayRowBtn(btn);
+});
 
+// Event delegation: same for mobile cards
+document.getElementById('mobileActivityCards')?.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.pay-row-btn');
+    if (!btn) return;
+    await handlePayRowBtn(btn);
+});
+
+async function handlePayRowBtn(btn) {
     const vehicleNo = btn.getAttribute('data-vehicle');
     if (!vehicleNo) return;
 
@@ -460,7 +522,9 @@ activityTableBody.addEventListener('click', async (e) => {
         btn.textContent = '💳 Pay & Exit';
         alert('Server error. Please try again.');
     }
-});
+}
+
+
 
 // ==========================================
 // FETCH & RENDER PARKING SLOTS

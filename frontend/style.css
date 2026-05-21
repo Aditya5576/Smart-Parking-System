@@ -581,10 +581,594 @@ tbody tr:hover {
     to { transform: rotate(360deg); }
 }
 
-/* Responsive Base */
+/* ============================================================
+   RESPONSIVE BASE — prevent ALL horizontal overflow
+============================================================ */
 html, body {
     overflow-x: hidden;
+    width: 100%;
 }
+
+* {
+    box-sizing: border-box;
+}
+
+/* ============================================================
+   TABLET  (max 900px)
+============================================================ */
+@media (max-width: 900px) {
+    body {
+        padding: 1.25rem;
+    }
+
+    .header-content h1 {
+        font-size: 1.9rem;
+    }
+
+    .dashboard-stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+
+    .parking-map {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    }
+}
+
+/* ============================================================
+   MOBILE  (max 640px)
+============================================================ */
+@media (max-width: 640px) {
+
+    /* ---- Body & Container ---- */
+    body {
+        padding: 0.75rem;
+        align-items: flex-start;
+    }
+
+    .container {
+        width: 100%;
+        padding: 0;
+    }
+
+    /* ---- Header ---- */
+    header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .header-content h1 {
+        font-size: 1.35rem;
+        line-height: 1.3;
+        letter-spacing: -0.3px;
+    }
+
+    .subtitle {
+        font-size: 0.7rem;
+        letter-spacing: 0.5px;
+    }
+
+    #loadSlotsBtn {
+        width: 100%;
+        padding: 12px;
+        font-size: 0.9rem;
+    }
+
+    /* ---- Stats — 2 columns on mobile ---- */
+    .dashboard-stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+        padding: 1rem 0.85rem;
+        gap: 0.75rem;
+        border-radius: 14px;
+    }
+
+    .stat-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        flex-shrink: 0;
+    }
+
+    .stat-info h3 {
+        font-size: 0.72rem;
+    }
+
+    .stat-info p {
+        font-size: 1.4rem;
+    }
+
+    /* ---- Forms — stacked, full width ---- */
+    .forms-container {
+        flex-direction: column;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .entry-form-container {
+        min-width: unset;
+        width: 100%;
+        padding: 1.25rem;
+        border-radius: 16px;
+    }
+
+    .panel-header {
+        margin-bottom: 1.25rem;
+    }
+
+    .panel-header h2 {
+        font-size: 1.1rem;
+    }
+
+    #entryForm, #exitForm {
+        gap: 0.85rem;
+    }
+
+    input, select {
+        padding: 13px 14px;
+        font-size: 0.95rem;
+        border-radius: 10px;
+    }
+
+    .primary-btn,
+    .submit-btn {
+        width: 100%;
+        padding: 13px;
+        font-size: 0.95rem;
+        border-radius: 10px;
+    }
+
+    /* ---- Section Titles ---- */
+    .section-title {
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+    }
+
+    /* ---- Parking Map ---- */
+    .map-header {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .map-legend {
+        padding: 0.5rem 0.85rem;
+        font-size: 0.75rem;
+        gap: 0.85rem;
+    }
+
+    .parking-map {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.6rem;
+        padding: 0.75rem;
+        margin-bottom: 2rem;
+        border-radius: 14px;
+    }
+
+    .map-slot {
+        aspect-ratio: 3 / 4;
+        padding: 0.5rem;
+        border-radius: 10px;
+    }
+
+    .slot-id-bg {
+        font-size: 3rem;
+    }
+
+    .slot-id {
+        font-size: 0.8rem;
+        padding: 2px 6px;
+    }
+
+    .slot-distance {
+        font-size: 0.6rem;
+        padding: 1px 4px;
+    }
+
+    .vehicle-emoji {
+        font-size: 2rem;
+    }
+
+    .slot-label {
+        font-size: 0.6rem;
+        letter-spacing: 0.5px;
+    }
+
+    .slot-timer {
+        font-size: 0.6rem;
+        padding: 1px 5px;
+    }
+
+    .vehicle-no-label {
+        font-size: 0.58rem;
+        padding: 1px 4px;
+    }
+
+    /* ---- Activity Table → Card View on Mobile ---- */
+    .activity-section {
+        margin-bottom: 2rem;
+    }
+
+    /* Hide the standard table on mobile */
+    .table-container {
+        overflow-x: hidden;
+        border-radius: 14px;
+        padding: 0;
+    }
+
+    table {
+        display: none; /* Hide table on mobile */
+    }
+
+    /* Card list injected by mobile-cards div */
+    .mobile-activity-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 0.75rem;
+    }
+
+    .mobile-activity-card {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+    }
+
+    .mobile-card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .mobile-card-vehicle {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--text-main);
+    }
+
+    .mobile-card-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.82rem;
+        color: var(--text-muted);
+    }
+
+    .mobile-card-row span:last-child {
+        color: var(--text-main);
+        font-weight: 500;
+    }
+
+    .mobile-card-actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 0.25rem;
+    }
+
+    .pay-row-btn {
+        padding: 8px 16px;
+        font-size: 0.82rem;
+        border-radius: 8px;
+    }
+
+    /* ---- Payment Modal ---- */
+    .payment-modal-overlay {
+        padding: 0.75rem;
+        align-items: flex-end; /* slides up from bottom on mobile */
+    }
+
+    .payment-modal-card {
+        max-width: 100%;
+        padding: 1.5rem 1.25rem;
+        border-radius: 20px 20px 16px 16px;
+        gap: 1.2rem;
+    }
+
+    .payment-modal-header h2 {
+        font-size: 1.2rem;
+    }
+
+    .bill-row {
+        padding: 0.75rem 1rem;
+    }
+
+    .bill-label {
+        font-size: 0.82rem;
+    }
+
+    .bill-value {
+        font-size: 0.88rem;
+    }
+
+    .bill-total-amount {
+        font-size: 1.25rem;
+    }
+
+    .pay-now-btn {
+        padding: 14px;
+        font-size: 1rem;
+    }
+}
+
+/* ============================================================
+   SMALL PHONES (max 380px)
+============================================================ */
+@media (max-width: 380px) {
+    .header-content h1 {
+        font-size: 1.15rem;
+    }
+
+    .dashboard-stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.6rem;
+    }
+
+    .stat-info p {
+        font-size: 1.2rem;
+    }
+
+    .stat-info h3 {
+        font-size: 0.65rem;
+    }
+
+    .parking-map {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+    }
+
+    .vehicle-emoji {
+        font-size: 1.75rem;
+    }
+}
+
+/* ============================================================
+   PAYMENT MODAL STYLES
+   Glassmorphism overlay + card with bill summary
+============================================================ */
+
+.payment-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    animation: fadeInOverlay 0.25s ease;
+}
+
+@keyframes fadeInOverlay {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.payment-modal-overlay.hidden {
+    display: none;
+}
+
+.payment-modal-card {
+    width: 100%;
+    max-width: 420px;
+    padding: 2.5rem 2rem;
+    border-radius: 24px;
+    animation: slideUpCard 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+@keyframes slideUpCard {
+    from { transform: translateY(60px) scale(0.95); opacity: 0; }
+    to   { transform: translateY(0)     scale(1);    opacity: 1; }
+}
+
+.payment-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.payment-icon {
+    font-size: 2rem;
+}
+
+.payment-modal-header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #fff, #a5b4fc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Bill Summary Rows */
+.payment-bill-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.bill-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.85rem 1.1rem;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.bill-row:last-child {
+    border-bottom: none;
+}
+
+.bill-label {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.bill-value {
+    font-size: 0.95rem;
+    color: var(--text-main);
+    font-weight: 600;
+}
+
+.bill-total-row {
+    background: rgba(99, 102, 241, 0.08);
+}
+
+.bill-total-amount {
+    font-size: 1.4rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #fde047, #eab308);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Action Buttons */
+.payment-modal-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.pay-now-btn {
+    width: 100%;
+    font-size: 1.1rem;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    box-shadow: 0 4px 20px rgba(34, 197, 94, 0.4);
+}
+
+.pay-now-btn:hover {
+    background: linear-gradient(135deg, #16a34a, #15803d);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 25px rgba(34, 197, 94, 0.5);
+}
+
+.cancel-pay-btn {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    color: var(--text-muted);
+    padding: 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-family: 'Outfit', sans-serif;
+    transition: all 0.3s ease;
+}
+
+.cancel-pay-btn:hover {
+    border-color: rgba(239, 68, 68, 0.5);
+    color: var(--danger);
+}
+
+/* Pay button loading spinner */
+.pay-spinner {
+    width: 18px;
+    height: 18px;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: inline-block;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Payment Status Message */
+.payment-status-msg {
+    text-align: center;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    animation: fadeInOverlay 0.3s ease;
+}
+
+.payment-status-msg.success-msg {
+    background: rgba(34, 197, 94, 0.15);
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    color: var(--success);
+}
+
+.payment-status-msg.error-msg {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: var(--danger);
+}
+
+/* Payment Success Celebration Animation */
+@keyframes successPop {
+    0%   { transform: scale(0.8); opacity: 0; }
+    60%  { transform: scale(1.1); }
+    100% { transform: scale(1);   opacity: 1; }
+}
+
+.payment-success-anim {
+    animation: successPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* ============================================================
+   PAY & EXIT BUTTON (inside activity table rows)
+============================================================ */
+.pay-row-btn {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: #fff;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    font-family: 'Outfit', sans-serif;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.25s ease;
+    box-shadow: 0 2px 10px rgba(34, 197, 94, 0.35);
+    letter-spacing: 0.3px;
+}
+
+.pay-row-btn:hover {
+    background: linear-gradient(135deg, #16a34a, #15803d);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(34, 197, 94, 0.5);
+}
+
+.pay-row-btn:disabled {
+    background: rgba(255,255,255,0.08);
+    color: var(--text-muted);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Desktop: hide mobile cards */
+.mobile-activity-cards {
+    display: none;
+}
+
 
 /* Tablet & Mobile Screens (Max Width: 768px) */
 @media (max-width: 768px) {
